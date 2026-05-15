@@ -102,7 +102,7 @@ class MemoryStore:
                        canonical_service: str, ts: str, fingerprint: str):
         """Insert an incident record (ignored if duplicate ID)."""
         self.conn.execute(
-            "INSERT OR IGNORE INTO incidents VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO incidents VALUES (?, ?, ?, ?, ?) ON CONFLICT (incident_id) DO NOTHING",
             [incident_id, family_id, canonical_service, ts, fingerprint],
         )
 
@@ -110,9 +110,12 @@ class MemoryStore:
                      canonical_service: str, event_sequence: str, ts: str):
         """Insert or replace an incident family record."""
         self.conn.execute(
-            "INSERT OR REPLACE INTO incident_families "
-            "(family_id, fingerprint, canonical_service, event_sequence, "
-            "occurrence_count, last_seen) VALUES (?, ?, ?, ?, 1, ?)",
+            "INSERT INTO incident_families "
+            "(family_id, fingerprint, canonical_service, event_sequence, occurrence_count, last_seen) "
+            "VALUES (?, ?, ?, ?, 1, ?) "
+            "ON CONFLICT (family_id) DO UPDATE SET "
+            "fingerprint=excluded.fingerprint, canonical_service=excluded.canonical_service, "
+            "event_sequence=excluded.event_sequence, last_seen=excluded.last_seen",
             [family_id, fingerprint, canonical_service, event_sequence, ts],
         )
 
@@ -120,7 +123,9 @@ class MemoryStore:
                           target: str, version: str, outcome: str, ts: str):
         """Insert or replace a remediation record."""
         self.conn.execute(
-            "INSERT OR REPLACE INTO remediations VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO remediations VALUES (?, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT (incident_id) DO UPDATE SET "
+            "action=excluded.action, outcome=excluded.outcome, ts=excluded.ts",
             [incident_id, family_id, action, target, version, outcome, ts],
         )
 

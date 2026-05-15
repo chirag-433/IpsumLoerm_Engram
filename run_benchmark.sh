@@ -12,8 +12,10 @@ fi
 
 # Copy adapter files into harness
 cp engine.py Anvil-P-E/bench-p02-context/
-cp myteam_adapter.py Anvil-P-E/bench-p02-context/adapters/myteam.py
 cp schema.py Anvil-P-E/bench-p02-context/
+cp myteam_adapter.py Anvil-P-E/bench-p02-context/adapters/myteam.py
+cp -r engine/ Anvil-P-E/bench-p02-context/engine/
+cp -r integrations/ Anvil-P-E/bench-p02-context/integrations/
 
 # Run self-check
 cd Anvil-P-E/bench-p02-context
