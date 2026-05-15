@@ -3,7 +3,7 @@ set -e
 echo "=== Engram P-02 Quickstart ==="
 
 # Install deps
-pip install -r requirements.txt
+.venv/bin/pip install -r requirements.txt
 
 # Clone harness if not present
 if [ ! -d "Anvil-P-E" ]; then
@@ -13,7 +13,7 @@ fi
 # Fix generator ground_truth alignment with eval_signals
 # The generator sorts eval_signals by timestamp but not ground_truth,
 # causing misaligned zip pairs in the harness scoring loop.
-python3 -c "
+.venv/bin/python3 -c "
 with open('Anvil-P-E/bench-p02-context/generator.py', 'r') as f:
     code = f.read()
 
@@ -33,11 +33,13 @@ print('Patched generator.py: ground_truth now aligned with eval_signals')
 cp engine.py Anvil-P-E/bench-p02-context/ 2>/dev/null || true
 cp schema.py Anvil-P-E/bench-p02-context/
 cp myteam_adapter.py Anvil-P-E/bench-p02-context/adapters/myteam.py
-cp -r engine/ Anvil-P-E/bench-p02-context/engine/
-cp -r integrations/ Anvil-P-E/bench-p02-context/integrations/
+mkdir -p Anvil-P-E/bench-p02-context/engine
+cp -r engine/* Anvil-P-E/bench-p02-context/engine/
+mkdir -p Anvil-P-E/bench-p02-context/integrations
+cp -r integrations/* Anvil-P-E/bench-p02-context/integrations/ 2>/dev/null || true
 
 # Run self-check
 cd Anvil-P-E/bench-p02-context
-python self_check.py --adapter adapters.myteam:Engine
+../../.venv/bin/python self_check.py --adapter adapters.myteam:Engine
 
 echo "=== Done ==="

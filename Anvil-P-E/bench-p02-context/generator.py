@@ -194,13 +194,10 @@ def generate(cfg: GenConfig | None = None) -> Dataset:
         emit(e, t)
 
     train.sort(key=lambda e: e["ts"])
-
-    # Fix the harness "zip bug" by aligning signals and truth via chronological sorting
-    eval_and_truth = sorted(zip(signals, truth), key=lambda pair: pair[0]["ts"])
-    
-    signals = [pair[0] for pair in eval_and_truth]
-    truth = [pair[1] for pair in eval_and_truth]
-    eval_ = sorted(eval_, key=lambda e: e["ts"])
+    eval_.sort(key=lambda e: e["ts"])
+    signals.sort(key=lambda e: e["ts"])
+    _truth_by_id = {t["incident_id"]: t for t in truth}
+    truth = [_truth_by_id[s["incident_id"]] for s in signals]
 
     return Dataset(
         train_events=train,
