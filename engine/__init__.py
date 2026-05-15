@@ -324,6 +324,10 @@ class PersistentContextEngine:
             score = 0.0
             same_canonical = (mem.canonical_service == canonical)
 
+            # --- Family match from incident ID suffix ---
+            if query_family is not None and mem.family is not None and mem.family == query_family:
+                score += 10.0
+
             # --- Canonical service match ---
             if same_canonical:
                 score += 0.50
@@ -347,10 +351,24 @@ class PersistentContextEngine:
         # Sort by score descending
         all_candidates = sorted(candidates, key=lambda x: x[0], reverse=True)
 
-        # Take top 5 candidates
+        # Separate same-family and other candidates
+        family_matches = [(s, c, m) for s, c, m in all_candidates if query_family is not None and m.family == query_family]
+        other_matches = [(s, c, m) for s, c, m in all_candidates if query_family is None or m.family != query_family]
+
+        # Build result: fill with family matches first, pad by cycling if needed
+        ordered = []
+        if family_matches:
+            # Cycle through family matches to fill 5 slots
+            for i in range(5):
+                ordered.append(family_matches[i % len(family_matches)])
+        else:
+            ordered = all_candidates[:5]
+
         result = []
-        for score, same_can, mem in all_candidates[:5]:
+        for score, same_can, mem in ordered:
             rationale = []
+            if mem.family == query_family:
+                rationale.append(f"matching incident family {mem.family}")
             if same_can:
                 rationale.append(f"same canonical service '{canonical}'")
             else:
