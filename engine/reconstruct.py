@@ -33,8 +33,8 @@ def reconstruct_context(signal: dict, ingester: AnvilIngester,
     signal_ts_str = signal.get("ts", "")
     signal_dt = _parse_ts(signal_ts_str)
 
-    window_start = (signal_dt - timedelta(minutes=30)).isoformat()
-    window_end = (signal_dt + timedelta(minutes=30)).isoformat()
+    window_start = (signal_dt - timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    window_end = (signal_dt + timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     rows = ingester.conn.execute(
         "SELECT raw_json FROM events WHERE ts >= ? AND ts <= ?",

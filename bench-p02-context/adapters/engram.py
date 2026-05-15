@@ -64,6 +64,7 @@ class Engine(Adapter):
                     e.get("outcome", ""),
                     e.get("ts", "")
                 )
+        self.ingester._flush()
 
     def reconstruct_context(
         self,

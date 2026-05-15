@@ -116,6 +116,8 @@ async def ingest_events(events: list[dict]):
     for e in events:
         _process_event(e)
 
+    _ingester._flush()
+
     return {"status": "ok", "count": len(events)}
 
 

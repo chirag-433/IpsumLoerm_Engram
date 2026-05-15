@@ -29,27 +29,12 @@ Extracts behavioral fingerprints (Deploys, Latency Spikes, Upstream Errors) rela
 ### 4. Topological Causal Inference
 Constructs causal chains by linking disparate telemetry events (Metric spikes → Log errors → Incident Signals) through temporal proximity and topological relationships.
 
-## 🛠 Usage
+## Quickstart (clean machine, < 5 min)
 
-### Setup
-```bash
-# Clone the repository
 git clone https://github.com/chirag-433/IpsumLoerm_Engram.git
 cd IpsumLoerm_Engram
-
-# Install dependencies (Standard Library only is used by the core engine)
 pip install -r requirements.txt
-```
-
-### Running the Benchmark
-To run this engine against the P-02 benchmark harness:
-
-1. Clone the [Anvil-P-E](https://github.com/Sauhard74/Anvil-P-E) repository.
-2. Copy `engine.py` and `myteam_adapter.py` into the `bench-p02-context` directory.
-3. Run the self-check:
-```bash
-python self_check.py --adapter adapters.myteam:Engine
-```
+bash run_benchmark.sh
 
 ## 📂 Project Structure
 - `engine.py`: The core Persistent Context Engine implementation.
