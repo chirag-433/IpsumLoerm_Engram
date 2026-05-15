@@ -57,4 +57,3 @@ python self_check.py --adapter adapters.myteam:Engine
 - `requirements.txt`: Minimal dependencies for the support tools.
 
 ---
-*Optimized by Antigravity.*
