@@ -318,50 +318,44 @@ class PersistentContextEngine:
         candidates = []
 
         for iid, mem in self._incidents.items():
-            if iid == current_iid or mem.ts >= ts or mem.family is None:
+            if iid == current_iid or mem.ts >= ts:
                 continue
 
             score = 0.0
             same_canonical = (mem.canonical_service == canonical)
 
-            # --- Canonical match is the strongest topology-independent signal ---
+            # --- Canonical service match ---
             if same_canonical:
-                score += 0.40
-            
-            # --- Family Match (internal) - High priority for rank 1 ---
-            if query_family is not None and mem.family == query_family:
-                score += 10.0  # Force exact family matches to dominate the top
+                score += 0.50
 
             # --- Behavioral fingerprint similarity ---
             fp_match = 0
             if mem.deploy_before == q_deploy: fp_match += 1
             if mem.latency_spike == q_latency: fp_match += 1
             if mem.upstream_error == q_error: fp_match += 1
-            score += 0.10 * (fp_match / 3.0)
+            score += 0.30 * (fp_match / 3.0)
 
             # --- Trigger token similarity ---
             if query_tokens and mem.trigger_tokens:
                 intersection = len(query_tokens & mem.trigger_tokens)
                 union = len(query_tokens | mem.trigger_tokens)
                 if union > 0:
-                    score += 0.05 * (intersection / union)
+                    score += 0.20 * (intersection / union)
 
             candidates.append((score, same_canonical, mem))
 
-        # Sort all candidates by score (no family deduplication)
+        # Sort by score descending
         all_candidates = sorted(candidates, key=lambda x: x[0], reverse=True)
-        
+
         # Take top 5 candidates
         result = []
         for score, same_can, mem in all_candidates[:5]:
             rationale = []
-            if mem.family == query_family:
-                rationale.append(f"Matching incident family {mem.family}")
             if same_can:
                 rationale.append(f"same canonical service '{canonical}'")
             else:
                 rationale.append("similar behavioral pattern")
-            
+
             result.append({
                 "incident_id": mem.incident_id,
                 "similarity": round(min(score, 1.0), 4),
