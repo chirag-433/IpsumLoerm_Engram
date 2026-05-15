@@ -315,14 +315,7 @@ class PersistentContextEngine:
         q_deploy: bool, q_latency: bool, q_error: bool,
         query_tokens: set
     ) -> List[Dict]:
-        """
-        Family Diversity Strategy:
-        To maximize recall@5 when order-mismatching might occur in the harness,
-        we ensure that our top 5 covers as many different families as possible.
-        We prioritize the 'query_family' at rank 1, then fill the rest with 
-        unique families to guarantee a hit regardless of zipping.
-        """
-        best_per_family: Dict[int, Tuple[float, bool, IncidentMemory]] = {}
+        candidates = []
 
         for iid, mem in self._incidents.items():
             if iid == current_iid or mem.ts >= ts or mem.family is None:
@@ -337,7 +330,7 @@ class PersistentContextEngine:
             
             # --- Family Match (internal) - High priority for rank 1 ---
             if query_family is not None and mem.family == query_family:
-                score += 0.50
+                score += 10.0  # Force exact family matches to dominate the top
 
             # --- Behavioral fingerprint similarity ---
             fp_match = 0
@@ -353,21 +346,18 @@ class PersistentContextEngine:
                 if union > 0:
                     score += 0.05 * (intersection / union)
 
-            # Diversity check: keep the best one for each family
-            if mem.family not in best_per_family or score > best_per_family[mem.family][0]:
-                best_per_family[mem.family] = (score, same_canonical, mem)
+            candidates.append((score, same_canonical, mem))
 
-        # Sort all unique-family candidates by score
-        all_candidates = sorted(best_per_family.values(), key=lambda x: x[0], reverse=True)
+        # Sort all candidates by score (no family deduplication)
+        all_candidates = sorted(candidates, key=lambda x: x[0], reverse=True)
         
-        # Take top 5 unique families
+        # Take top 5 candidates
         result = []
         for score, same_can, mem in all_candidates[:5]:
             rationale = []
             if mem.family == query_family:
                 rationale.append(f"Matching incident family {mem.family}")
             if same_can:
-                live = self.registry.live(canonical)
                 rationale.append(f"same canonical service '{canonical}'")
             else:
                 rationale.append("similar behavioral pattern")
