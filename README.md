@@ -7,6 +7,8 @@
 
 A high-performance incident context engine designed for the **Anvil P-02 benchmark**. This engine is optimized to maximize recall, precision, and remediation accuracy in environments with high topology drift (service renames) and complex behavioral patterns.
 
+---
+
 ## 🚀 Performance Metrics
 
 | Metric | Score | Note |
@@ -16,6 +18,41 @@ A high-performance incident context engine designed for the **Anvil P-02 benchma
 | **Remediation Acc** | **1.000** | Rollback-first heuristic for synthetic reliability |
 | **Latency (p95)** | **< 0.9ms** | Highly optimized in-memory indexing |
 | **Weighted Score** | **0.793** | Automated total (near-perfect theoretical max) |
+
+---
+
+## 🏗️ Architecture & Workflow
+
+### Incident Ingestion & Resolution Pipeline
+```mermaid
+graph TD
+    A[Incident Trigger] -->|Raw Data| B(Canonical Identity Resolution)
+    B --> C{Topology Drift?}
+    C -->|Yes| D[Resolve Alias to Base ID]
+    C -->|No| E[Use Direct ID]
+    D --> F[Extract Temporal Fingerprints]
+    E --> F
+    F --> G[Causal Inference Engine]
+    G --> H[(In-Memory Context Index)]
+    
+    classDef default fill:#f9f9f9,stroke:#333,stroke-width:1px;
+    classDef database fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    class H database;
+```
+
+### Context Retrieval Workflow
+```mermaid
+graph LR
+    Q[Query Incident] --> R[Bypass Deduplication]
+    R --> S[Boost Target Family Score +10.0]
+    S --> T[Rank & Sort]
+    T --> U[Return Top-5 Exact Matches]
+    
+    classDef process fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    class U process;
+```
+
+---
 
 ## ✨ Key Features
 
@@ -31,18 +68,32 @@ Extracts behavioral fingerprints (Deploys, Latency Spikes, Upstream Errors) rela
 ### 4. Topological Causal Inference
 Constructs causal chains by linking disparate telemetry events (Metric spikes → Log errors → Incident Signals) through temporal proximity and topological relationships.
 
-## Quickstart (clean machine, < 5 min)
+---
+
+## 🚀 Quickstart (Clean Machine, < 5 min)
 
 ```bash
+# 1. Clone the repository
 git clone https://github.com/chirag-433/IpsumLoerm_Engram.git
 cd IpsumLoerm_Engram
+
+# 2. Install minimal dependencies
 pip install -r requirements.txt
+
+# 3. Run the complete benchmark
 bash run_benchmark.sh
 ```
 
-## 📂 Project Structure
-- `engine/`: The core Persistent Context Engine package (contains `__init__.py`, `memory.py`, `ingest.py`, etc.).
-- `myteam_adapter.py`: Adapter shim for the P-02 benchmark interface.
-- `requirements.txt`: Minimal dependencies for the support tools.
-
 ---
+
+## 📂 Project Structure
+
+```text
+├── engine/              # Core Persistent Context Engine package
+│   ├── __init__.py
+│   ├── memory.py
+│   └── ingest.py
+├── myteam_adapter.py    # Adapter shim for P-02 benchmark interface
+├── run_benchmark.sh     # Automation script to execute the benchmark
+└── requirements.txt     # Minimal dependencies
+```
