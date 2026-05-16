@@ -1,4 +1,4 @@
-# Persistent Context Engine (P-02)
+# Engram
 
 [![Benchmark: P-02](https://img.shields.io/badge/Benchmark-P--02-blueviolet)](https://github.com/Sauhard74/Anvil-P-E)
 [![Recall@5: 1.0](https://img.shields.io/badge/Recall@5-1.0-success)](#)
