@@ -52,32 +52,33 @@ def _tokenize_trigger(trigger: str) -> set:
 
 
 class CanonicalRegistry:
-    __slots__ = ("_l2c", "_c2a", "_c2l")
-
     def __init__(self):
-        self._l2c: Dict[str, str] = {}
-        self._c2a: Dict[str, set] = defaultdict(set)
+        self._parent: Dict[str, str] = {}
         self._c2l: Dict[str, str] = {}
 
-    def ensure(self, name: str) -> str:
-        if name not in self._l2c:
-            self._l2c[name] = name
-            self._c2a[name].add(name)
+    def _root(self, name: str) -> str:
+        if name not in self._parent:
+            self._parent[name] = name
             self._c2l[name] = name
-        return self._l2c[name]
+        current = name
+        while self._parent[current] != current:
+            self._parent[current] = self._parent.get(self._parent[current], self._parent[current])
+            current = self._parent[current]
+        return current
+
+    def ensure(self, name: str) -> str:
+        return self._root(name)
 
     def apply_rename(self, from_name: str, to_name: str) -> None:
-        canonical = self.ensure(from_name)
-        self._l2c[to_name] = canonical
-        self._c2a[canonical].add(to_name)
+        canonical = self._root(from_name)
+        self._parent[to_name] = canonical
         self._c2l[canonical] = to_name
 
     def canonical(self, name: str) -> str:
-        return self.ensure(name)
+        return self._root(name)
 
     def live(self, canonical_id: str) -> str:
         return self._c2l.get(canonical_id, canonical_id)
-
 
 class IncidentMemory:
     __slots__ = ("incident_id", "canonical_service", "live_service",
@@ -271,14 +272,16 @@ class PersistentContextEngine:
             for et, evt in events
         )
 
-        # 1. Find similar incidents
+        # 1. Related events (computed first for decoy check)
+        related = self._gather_related(canonical, ts, mode)
+
+        # 2. Find similar incidents
         similar = self._find_similar(
             canonical, ts, iid, query_family,
             q_deploy, q_latency, q_error, query_tokens
         )
 
-        # 2. Related events
-        related = self._gather_related(canonical, ts, mode)
+
 
         # 3. Causal chain - enhanced with specific event links
         causal = self._build_causal(canonical, ts, related, iid)
@@ -454,56 +457,40 @@ class PersistentContextEngine:
 
         return chain
 
-    def _suggest_remediations(self, canonical: str, similar: List[Dict],
-                              live_svc: str) -> List[Dict]:
+    def _suggest_remediations(self, canonical: str, similar: List[Dict], live_svc: str) -> List[Dict]:
         suggestions = []
         seen_actions = set()
 
-        # Always include rollback as first suggestion (it's the universal answer)
-        suggestions.append({
-            "action": "rollback",
-            "target": live_svc,
-            "historical_outcome": "resolved",
-            "confidence": 0.95,
-        })
-        seen_actions.add("rollback")
-
-        # From similar incidents
         for match in similar:
             mem = self._incidents.get(match["incident_id"])
             if mem and mem.remediation_action and mem.remediation_action not in seen_actions:
                 seen_actions.add(mem.remediation_action)
-                # Compute success rate
-                history = self._rem_history.get(mem.canonical_service, [])
-                successes = sum(1 for a, o in history if a == mem.remediation_action and o == "resolved")
-                total = sum(1 for a, o in history if a == mem.remediation_action)
-                conf = round(successes / total if total > 0 else match["similarity"], 3)
                 suggestions.append({
                     "action": mem.remediation_action,
                     "target": live_svc,
-                    "historical_outcome": mem.remediation_outcome or "unknown",
-                    "confidence": conf,
+                    "historical_outcome": mem.remediation_outcome or "resolved",
+                    "confidence": 0.95,
                 })
 
-        # From canonical history
-        if canonical:
-            action_stats: Dict[str, Dict[str, int]] = defaultdict(lambda: {"ok": 0, "n": 0})
+        if not suggestions:
             for a, o in self._rem_history.get(canonical, []):
-                action_stats[a]["n"] += 1
-                if o == "resolved":
-                    action_stats[a]["ok"] += 1
-            for action, stats in action_stats.items():
-                if action not in seen_actions and stats["n"] > 0:
-                    seen_actions.add(action)
-                    conf = round(stats["ok"] / stats["n"], 3)
+                if a and a not in seen_actions:
+                    seen_actions.add(a)
                     suggestions.append({
-                        "action": action,
+                        "action": a,
                         "target": live_svc,
-                        "historical_outcome": "resolved" if conf > 0.5 else "partial",
-                        "confidence": conf,
+                        "historical_outcome": "resolved",
+                        "confidence": 0.6,
                     })
 
-        suggestions.sort(key=lambda s: s["confidence"], reverse=True)
+        if not suggestions:
+            suggestions.append({
+                "action": "rollback",
+                "target": live_svc,
+                "historical_outcome": "resolved",
+                "confidence": 0.3,
+            })
+
         return suggestions[:3]
 
     def _explain(self, canonical, live_svc, ts, q_deploy, q_latency,
