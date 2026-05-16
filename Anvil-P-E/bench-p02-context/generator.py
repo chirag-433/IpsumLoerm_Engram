@@ -198,6 +198,8 @@ def generate(cfg: GenConfig | None = None) -> Dataset:
     signals.sort(key=lambda e: e["ts"])
     _truth_by_id = {t["incident_id"]: t for t in truth}
     truth = [_truth_by_id[s["incident_id"]] for s in signals]
+    _truth_by_id = {t["incident_id"]: t for t in truth}
+    truth = [_truth_by_id[s["incident_id"]] for s in signals]
 
     return Dataset(
         train_events=train,
